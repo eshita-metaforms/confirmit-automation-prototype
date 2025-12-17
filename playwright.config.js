@@ -46,17 +46,26 @@ module.exports = defineConfig({
     video: 'retain-on-failure',
   },
 
-  /* Configure projects for Chrome with extension */
+  /* Configure projects - extension tests manage their own browser */
   projects: [
     {
+      name: 'extension-tests',
+      testMatch: /login-flow\.spec\.js/,
+      use: {
+        // These tests manage their own browser context with extension loaded
+        headless: false,
+      },
+    },
+    {
       name: 'chromium-extension',
+      testIgnore: /login-flow\.spec\.js/,
       use: {
         // Chrome extensions require headed mode
         headless: false,
-        
+
         // Use Chrome channel for extension support
         channel: 'chrome',
-        
+
         // Launch options for extension loading
         launchOptions: {
           args: [
@@ -66,12 +75,13 @@ module.exports = defineConfig({
             '--disable-default-apps',
           ],
         },
-        
+
         // Viewport settings
         viewport: { width: 1280, height: 720 },
       },
     },
   ],
 });
+
 
 

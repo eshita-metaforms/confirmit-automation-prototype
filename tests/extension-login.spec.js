@@ -1,15 +1,18 @@
 const { test, expect } = require('@playwright/test');
-const { ExtensionHelper } = require('../helpers/extensionHelper');
+const { BrowserManager } = require('../helpers/BrowserManager');
 const { ExtensionSidePanelPage } = require('../pages/ExtensionSidePanelPage');
 const testConfig = require('../config/test.config');
 
 /**
  * Extension Login Test Suite
  * Tests login functionality via Chrome extension side panel
+ * 
+ * Note: These tests focus on extension-only functionality.
+ * For full login flow (external site + extension), see login-flow.spec.js
  */
 test.describe('Extension Login', () => {
-  /** @type {ExtensionHelper} */
-  let extensionHelper;
+  /** @type {BrowserManager} */
+  let browserManager;
   
   /** @type {ExtensionSidePanelPage} */
   let sidePanelPage;
@@ -21,16 +24,16 @@ test.describe('Extension Login', () => {
    * Setup: Launch browser with extension before all tests
    */
   test.beforeAll(async () => {
-    extensionHelper = new ExtensionHelper();
-    await extensionHelper.launchBrowserWithExtension();
+    browserManager = new BrowserManager();
+    await browserManager.launch();
   });
 
   /**
    * Setup: Create new page and navigate to side panel before each test
    */
   test.beforeEach(async () => {
-    page = await extensionHelper.newPage();
-    const extensionId = extensionHelper.getExtensionId();
+    page = await browserManager.newPage();
+    const extensionId = browserManager.getExtensionId();
     sidePanelPage = new ExtensionSidePanelPage(page, extensionId);
     await sidePanelPage.goto();
   });
@@ -39,7 +42,7 @@ test.describe('Extension Login', () => {
    * Teardown: Close page after each test
    */
   test.afterEach(async () => {
-    if (page) {
+    if (page && !page.isClosed()) {
       await page.close();
     }
   });
@@ -48,8 +51,8 @@ test.describe('Extension Login', () => {
    * Teardown: Close browser context after all tests
    */
   test.afterAll(async () => {
-    if (extensionHelper) {
-      await extensionHelper.close();
+    if (browserManager) {
+      await browserManager.close();
     }
   });
 
@@ -68,18 +71,18 @@ test.describe('Extension Login', () => {
    */
   test('should successfully login via extension side panel', async () => {
     // Arrange - Get test credentials
-    const { username, password } = testConfig.testCredentials;
+    const { username, password } = testConfig.extensionCredentials;
 
     // Act - Perform login
     await sidePanelPage.login(username, password);
 
     // Assert - Wait for and verify redirect
-    const redirected = await sidePanelPage.waitForRedirect();
+    const redirected = await sidePanelPage.waitForLoginSuccess();
     expect(redirected).toBe(true);
     
     // Additional assertion - verify URL contains expected path
     const currentUrl = sidePanelPage.getCurrentUrl();
-    expect(currentUrl).toContain(testConfig.redirectAfterLogin.urlContains);
+    expect(currentUrl).toContain(testConfig.extensionRedirectAfterLogin.urlContains);
   });
 
   /**
@@ -151,5 +154,3 @@ test.describe('Extension Login', () => {
     expect(passwordValue).toBe('');
   });
 });
-
-
